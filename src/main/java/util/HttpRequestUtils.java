@@ -6,8 +6,37 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import webserver.RequestHandler;
 
 public class HttpRequestUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
+
+    public final static int STATUS_METHOD = 0;
+    public final static int STATUS_PATH = 1;
+    public final static int STATUS_PROTOCOL = 2;
+
+
+    /**
+     * HTTP Request Status 라인을 해석하는 메소드입니다.
+     * @param requestLine
+     * @param token
+     * @return
+     */
+    public static String parseRequestLine (String requestLine, int token) {
+        // GET /index.html HTTP/1.1
+        if (token > 2 || token < 0) {
+            log.error("not valid token number - {} ", token);
+            return "";
+        }
+
+        String[] tokens = requestLine.split(" ");
+
+        return tokens[token];
+    }
+
     /**
      * @param queryString은
      *            URL에서 ? 이후에 전달되는 field1=value1&field2=value2 형식임

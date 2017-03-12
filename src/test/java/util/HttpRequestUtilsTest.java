@@ -10,6 +10,27 @@ import org.junit.Test;
 import util.HttpRequestUtils.Pair;
 
 public class HttpRequestUtilsTest {
+
+    @Test
+    public void STATUS_LINE_해석_테스트 () {
+        String requestLine = "GET /index.html HTTP/1.1";
+
+        String method = HttpRequestUtils.parseRequestLine(requestLine, HttpRequestUtils.STATUS_METHOD);
+        assertThat(method, is("GET"));
+
+        String path = HttpRequestUtils.parseRequestLine(requestLine, HttpRequestUtils.STATUS_PATH);
+        assertThat(path, is("/index.html"));
+
+        String protocol = HttpRequestUtils.parseRequestLine(requestLine, HttpRequestUtils.STATUS_PROTOCOL);
+        assertThat(protocol, is("HTTP/1.1"));
+
+        String notValidMinus = HttpRequestUtils.parseRequestLine(requestLine, -1);
+        assertThat(notValidMinus, is(""));
+
+        String notValidPlus = HttpRequestUtils.parseRequestLine(requestLine, 4);
+        assertThat(notValidPlus, is(""));
+    }
+
     @Test
     public void parseQueryString() {
         String queryString = "userId=javajigi";
