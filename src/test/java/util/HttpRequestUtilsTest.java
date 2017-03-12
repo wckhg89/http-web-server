@@ -5,11 +5,25 @@ import static org.junit.Assert.*;
 
 import java.util.Map;
 
+import model.User;
 import org.junit.Test;
 
 import util.HttpRequestUtils.Pair;
 
 public class HttpRequestUtilsTest {
+
+    @Test
+    public void PATH에서_쿼리스트링만_추출하기_테스트 () {
+        String requestLine = "GET /user/create?userId=admin&password=test&name=%EA%B0%95%ED%99%8D%EA%B5%AC&email=wckhg89%40naver.com HTTP/1.1";
+
+        String path = HttpRequestUtils.parseRequestLine(requestLine, HttpRequestUtils.STATUS_PATH);
+
+        String queryString = HttpRequestUtils.getPathToQueryString(path);
+
+        assertThat(queryString, is("userId=admin&password=test&name=%EA%B0%95%ED%99%8D%EA%B5%AC&email=wckhg89%40naver.com"));
+
+
+    }
 
     @Test
     public void STATUS_LINE_해석_테스트 () {
@@ -32,6 +46,29 @@ public class HttpRequestUtilsTest {
     }
 
     @Test
+    public void parseQueryString_PATH_이용한_모델객체_만들기_테스 () {
+        User mockUser = new User("admin","test","강홍구", "wckhg89@naver.com");
+        String requestLine = "GET /user/create?userId=admin&password=test&name=강홍구&email=wckhg89@naver.com HTTP/1.1";
+
+        String path = HttpRequestUtils.parseRequestLine(requestLine, HttpRequestUtils.STATUS_PATH);
+
+        String queryString = HttpRequestUtils.getPathToQueryString(path);
+        Map<String, String> parameters = HttpRequestUtils.parseQueryString(queryString);
+
+        String userId = parameters.get("userId");
+        String password = parameters.get("password");
+        String name = parameters.get("name");
+        String email = parameters.get("email");
+
+        User realUser = new User(userId, password, name, email);
+
+
+        assertEquals(mockUser.toString(), realUser.toString());
+    }
+
+
+
+    @Test
     public void parseQueryString() {
         String queryString = "userId=javajigi";
         Map<String, String> parameters = HttpRequestUtils.parseQueryString(queryString);
@@ -42,6 +79,8 @@ public class HttpRequestUtilsTest {
         parameters = HttpRequestUtils.parseQueryString(queryString);
         assertThat(parameters.get("userId"), is("javajigi"));
         assertThat(parameters.get("password"), is("password2"));
+
+
     }
 
     @Test
@@ -90,5 +129,10 @@ public class HttpRequestUtilsTest {
         String header = "Content-Length: 59";
         Pair pair = HttpRequestUtils.parseHeader(header);
         assertThat(pair, is(new Pair("Content-Length", "59")));
+    }
+
+    @Test
+    public void PairMap_만들기_테스트 () {
+
     }
 }

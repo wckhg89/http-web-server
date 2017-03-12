@@ -3,10 +3,16 @@ package webserver;
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -32,23 +38,90 @@ public class RequestHandler extends Thread {
             }
 
             log.info("HTTP STATUS - {}", line);
-            String path = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_PATH);
-            log.info("PATH - {}", path);
+            String method = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_METHOD);
 
-
-            while (!"".equals(line)) {
-                line = br.readLine();
-                log.info("HTTP HEADER - {}", line);
+            if ("GET".equals(method)) {
+                processGet(out, br, line);
             }
 
-            DataOutputStream dos = new DataOutputStream(out);
-            //byte[] body = "Hello World".getBytes();
-            byte[] body = Files.readAllBytes(new File("./webapp" + path).toPath());
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+            if ("POST".equals(method)) {
+                processPost(out, br, line);
+            }
+
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private void processPost (OutputStream out, BufferedReader br, String line) throws IOException {
+        String path = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_PATH);
+        log.info("PATH - {}", path);
+
+        Map<String , HttpRequestUtils.Pair> pairMap = Maps.newHashMap();
+        while (!"".equals(line)) {
+            line = br.readLine();
+            HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
+            if (pair != null) {
+                pairMap.put(pair.getKey(), pair);
+                log.info("Pair - {} ", pair.toString());
+            }
+        }
+
+        String data = IOUtils.readData(br, Integer.parseInt(pairMap.get("Content-Length").getValue()));
+        log.debug("DATA - {}", data);
+
+        Map<String, String> parameters = HttpRequestUtils.parseQueryString(data);
+
+
+        String userId = parameters.get("userId");
+        String password = parameters.get("password");
+        String name = parameters.get("name");
+        String email = parameters.get("email");
+
+        User user = new User(userId, password, name, email);
+
+        log.debug("User - {}", user.toString());
+
+
+        /*DataOutputStream dos = new DataOutputStream(out);
+        byte[] body = Files.readAllBytes(new File("./webapp" + path).toPath());
+        response200Header(dos, body.length);
+        responseBody(dos, body);*/
+    }
+
+    private void processGet(OutputStream out, BufferedReader br, String line) throws IOException {
+        String path = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_PATH);
+        log.info("PATH - {}", path);
+
+        String queryString = HttpRequestUtils.getPathToQueryString(path);
+        User user = null;
+
+        if (!"".equals(queryString)) {
+            Map<String, String> parameters = HttpRequestUtils.parseQueryString(queryString);
+
+            String userId = parameters.get("userId");
+            String password = parameters.get("password");
+            String name = parameters.get("name");
+            String email = parameters.get("email");
+
+            user = new User(userId, password, name, email);
+            log.info("User - {} ", user.toString());
+        }
+
+
+        while (!"".equals(line)) {
+            line = br.readLine();
+            HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
+            if (pair != null) {
+                log.info("Pair - {} ", pair.toString());
+            }
+        }
+
+        DataOutputStream dos = new DataOutputStream(out);
+        //byte[] body = "Hello World".getBytes();
+        byte[] body = Files.readAllBytes(new File("./webapp" + path).toPath());
+        response200Header(dos, body.length);
+        responseBody(dos, body);
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {

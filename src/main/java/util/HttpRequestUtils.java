@@ -19,6 +19,16 @@ public class HttpRequestUtils {
     public final static int STATUS_PROTOCOL = 2;
 
 
+
+    public static String getPathToQueryString (String path) {
+        if (!path.contains("?")) {
+            log.info("not contain query string");
+            return "";
+        }
+
+        return path.split("\\?")[1];
+    }
+
     /**
      * HTTP Request Status 라인을 해석하는 메소드입니다.
      * @param requestLine
