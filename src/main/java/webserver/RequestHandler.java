@@ -31,13 +31,10 @@ public class RequestHandler extends Thread {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 
-            String line = br.readLine();
+            String line = getRequestLine(br);
 
-            if (line == null) {
-                return;
-            }
+            if (line == null) return;
 
-            log.info("HTTP STATUS - {}", line);
             String method = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_METHOD);
 
             if ("GET".equals(method)) {
@@ -51,6 +48,17 @@ public class RequestHandler extends Thread {
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private String getRequestLine(BufferedReader br) throws IOException {
+        String line = br.readLine();
+
+        if (line == null) {
+            return null;
+        }
+
+        log.info("HTTP STATUS - {}", line);
+        return line;
     }
 
     private void processPost (OutputStream out, BufferedReader br, String line) throws IOException {
@@ -82,11 +90,7 @@ public class RequestHandler extends Thread {
 
         log.debug("User - {}", user.toString());
 
-
-        /*DataOutputStream dos = new DataOutputStream(out);
-        byte[] body = Files.readAllBytes(new File("./webapp" + path).toPath());
-        response200Header(dos, body.length);
-        responseBody(dos, body);*/
+        // todo: 요구사항 4번 302 리다이렌트 기능 구현 (머리아파)
     }
 
     private void processGet(OutputStream out, BufferedReader br, String line) throws IOException {
@@ -118,7 +122,6 @@ public class RequestHandler extends Thread {
         }
 
         DataOutputStream dos = new DataOutputStream(out);
-        //byte[] body = "Hello World".getBytes();
         byte[] body = Files.readAllBytes(new File("./webapp" + path).toPath());
         response200Header(dos, body.length);
         responseBody(dos, body);

@@ -131,8 +131,4 @@ public class HttpRequestUtilsTest {
         assertThat(pair, is(new Pair("Content-Length", "59")));
     }
 
-    @Test
-    public void PairMap_만들기_테스트 () {
-
-    }
 }
