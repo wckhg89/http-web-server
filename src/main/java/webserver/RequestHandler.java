@@ -68,16 +68,7 @@ public class RequestHandler extends Thread {
         log.info("PATH - {}", path);
 
         Map<String , HttpRequestUtils.Pair> pairMap = Maps.newHashMap();
-        while (!"".equals(line)) {
-            line = br.readLine();
-            HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
-
-
-            if (pair != null) {
-                pairMap.put(pair.getKey(), pair);
-                log.info("Pair - {} ", pair.toString());
-            }
-        }
+        parseHeader(br, line, pairMap);
 
         String data
                 = IOUtils
@@ -85,6 +76,7 @@ public class RequestHandler extends Thread {
         log.debug("DATA - {}", data);
 
         Map<String, String> parameters = HttpRequestUtils.parseQueryString(data);
+        DataOutputStream dos = new DataOutputStream(out);
 
         if (path.contains("user/create")) {
 
@@ -99,7 +91,7 @@ public class RequestHandler extends Thread {
 
             DataBase.addUser(user);
 
-            DataOutputStream dos = new DataOutputStream(out);
+
             response302Header(dos, pairMap.get("Accept").getValue(),"http://localhost:8080/index.html");
 
             return;
@@ -109,7 +101,6 @@ public class RequestHandler extends Thread {
             String userId = parameters.get("userId");
 
             User loginUser = DataBase.findUserById(userId);
-            DataOutputStream dos = new DataOutputStream(out);
 
             if (loginUser != null) {
                 response302LoginedHeader(dos, pairMap.get("Accept").getValue(),"http://localhost:8080/index.html");
@@ -143,20 +134,44 @@ public class RequestHandler extends Thread {
         }
 
 
-        while (!"".equals(line)) {
-            line = br.readLine();
-            HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
-            if (pair != null) {
-                log.info("Pair - {} ", pair.toString());
-            }
-        }
+        Map<String , HttpRequestUtils.Pair> pairMap = Maps.newHashMap();
+        parseHeader(br, line, pairMap);
 
         DataOutputStream dos = new DataOutputStream(out);
+
+        if (path.contains("user/list")) {
+            try {
+                String cookie = pairMap.get("Cookie").getValue();
+
+                if (!"logined=true".equals(cookie)) {
+                    response302Header(dos, pairMap.get("Accept").getValue(),"http://localhost:8080/index.html");
+                }
+
+            } catch (Exception e) {
+                response302Header(dos, pairMap.get("Accept").getValue(),"http://localhost:8080/index.html");
+            }
+
+        }
+
+
         byte[] body = Files.readAllBytes(new File("./webapp" + path).toPath());
-        response200Header(dos, body.length);
+        response200Header(dos, pairMap.get("Accept").getValue(), body.length);
         responseBody(dos, body);
     }
 
+
+    private void parseHeader(BufferedReader br, String line, Map<String, HttpRequestUtils.Pair> pairMap) throws IOException {
+        while (!"".equals(line)) {
+            line = br.readLine();
+            HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
+
+
+            if (pair != null) {
+                pairMap.put(pair.getKey(), pair);
+                log.info("Pair - {} ", pair.toString());
+            }
+        }
+    }
 
     private void response302Header (DataOutputStream dos, String contentType, String location) throws IOException {
         dos.writeBytes("HTTP/1.1 302 Found \r\n");
@@ -174,10 +189,10 @@ public class RequestHandler extends Thread {
 
     }
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
+    private void response200Header(DataOutputStream dos, String contentType, int lengthOfBodyContent) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            dos.writeBytes("Content-Type: "+ contentType + " \r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
