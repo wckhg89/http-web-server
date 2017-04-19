@@ -1,14 +1,15 @@
 package util;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import model.User;
+import org.junit.Test;
+import util.HttpRequestUtils.Pair;
 
 import java.util.Map;
 
-import model.User;
-import org.junit.Test;
-
-import util.HttpRequestUtils.Pair;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class HttpRequestUtilsTest {
 

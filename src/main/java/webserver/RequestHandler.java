@@ -8,6 +8,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,8 @@ public class RequestHandler extends Thread {
 
             if (line == null) return;
 
-            String method = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_METHOD);
+            String method
+                    = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_METHOD);
 
             if ("GET".equals(method)) {
                 processGet(out, br, line);
@@ -69,28 +71,56 @@ public class RequestHandler extends Thread {
         while (!"".equals(line)) {
             line = br.readLine();
             HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
+
+
             if (pair != null) {
                 pairMap.put(pair.getKey(), pair);
                 log.info("Pair - {} ", pair.toString());
             }
         }
 
-        String data = IOUtils.readData(br, Integer.parseInt(pairMap.get("Content-Length").getValue()));
+        String data
+                = IOUtils
+                .readData(br, Integer.parseInt(pairMap.get("Content-Length").getValue()));
         log.debug("DATA - {}", data);
 
         Map<String, String> parameters = HttpRequestUtils.parseQueryString(data);
 
+        if (path.contains("user/create")) {
 
-        String userId = parameters.get("userId");
-        String password = parameters.get("password");
-        String name = parameters.get("name");
-        String email = parameters.get("email");
+            String userId = parameters.get("userId");
+            String password = parameters.get("password");
+            String name = parameters.get("name");
+            String email = parameters.get("email");
 
-        User user = new User(userId, password, name, email);
+            User user = new User(userId, password, name, email);
 
-        log.debug("User - {}", user.toString());
+            log.debug("User - {}", user.toString());
 
-        // todo: 요구사항 4번 302 리다이렌트 기능 구현 (머리아파)
+            DataBase.addUser(user);
+
+            DataOutputStream dos = new DataOutputStream(out);
+            response302Header(dos, pairMap.get("Accept").getValue(),"http://localhost:8080/index.html");
+
+            return;
+        }
+
+        if (path.contains("user/login")) {
+            String userId = parameters.get("userId");
+
+            User loginUser = DataBase.findUserById(userId);
+            DataOutputStream dos = new DataOutputStream(out);
+
+            if (loginUser != null) {
+                response302LoginedHeader(dos, pairMap.get("Accept").getValue(),"http://localhost:8080/index.html");
+
+                return;
+            }
+
+            response302Header(dos, pairMap.get("Accept").getValue(),"http://localhost:8080/index.html");
+
+        }
+
     }
 
     private void processGet(OutputStream out, BufferedReader br, String line) throws IOException {
@@ -125,6 +155,23 @@ public class RequestHandler extends Thread {
         byte[] body = Files.readAllBytes(new File("./webapp" + path).toPath());
         response200Header(dos, body.length);
         responseBody(dos, body);
+    }
+
+
+    private void response302Header (DataOutputStream dos, String contentType, String location) throws IOException {
+        dos.writeBytes("HTTP/1.1 302 Found \r\n");
+        dos.writeBytes("Content-Type: " +  contentType+ ";charset=utf-8\r\n");
+        dos.writeBytes("Location: " + location +" \r\n");
+
+    }
+
+    private void response302LoginedHeader (DataOutputStream dos, String contentType, String location) throws IOException {
+        dos.writeBytes("HTTP/1.1 302 Found \r\n");
+        dos.writeBytes("Content-Type: " +  contentType+ ";charset=utf-8\r\n");
+        dos.writeBytes("Location: " + location + "\r\n");
+        dos.writeBytes("Set-Cookie: logined=true");
+        dos.writeBytes("\r\n");
+
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
