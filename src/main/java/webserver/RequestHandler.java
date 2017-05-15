@@ -37,7 +37,8 @@ public class RequestHandler extends Thread {
             if (line == null) return;
 
             String method
-                    = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_METHOD);
+                    = HttpRequestUtils
+                        .parseRequestLine(line, HttpRequestUtils.STATUS_METHOD);
 
             if ("GET".equals(method)) {
                 processGet(out, br, line);
@@ -115,7 +116,8 @@ public class RequestHandler extends Thread {
     }
 
     private void processGet(OutputStream out, BufferedReader br, String line) throws IOException {
-        String path = HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_PATH);
+        String path =
+                HttpRequestUtils.parseRequestLine(line, HttpRequestUtils.STATUS_PATH);
         log.info("PATH - {}", path);
 
         String queryString = HttpRequestUtils.getPathToQueryString(path);
