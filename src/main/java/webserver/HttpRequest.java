@@ -3,6 +3,7 @@ package webserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 import java.io.*;
 import java.util.Map;
@@ -15,7 +16,12 @@ public class HttpRequest {
     private static Logger logger = LoggerFactory.getLogger(HttpRequest.class);
 
     private BufferedReader bufferedReader;
-    private String requestLine;
+
+    private String method;
+    private String path;
+    private String protocol;
+
+    private Map<String, String> parameterMap;
     private Map<String , String> headerMap;
 
 
@@ -24,11 +30,60 @@ public class HttpRequest {
             this.bufferedReader = new BufferedReader
                     (new InputStreamReader(inputStream, "UTF-8"));
 
-            this.requestLine = getRequestLine();
+            String requestLine = getRequestLine();
+
+            this.setMethod(requestLine);
+            this.setPath(requestLine);
+            this.setProtocol(requestLine);
+            this.setHeader(requestLine);
+            this.setParameter();
 
         } catch (Exception e) {
             logger.error("Error - {}", e);
         }
+    }
+
+
+    public String getMethod () {
+        return this.method;
+    }
+
+    public String getPath () {
+        return this.path;
+    }
+
+    public String getProtocol () {
+        return this.protocol;
+    }
+
+    public String getHeader (String key) {
+        return headerMap.get(key);
+    }
+
+    private void setParameter () throws IOException {
+        if ("GET".equals(this.method)) {
+            setGetParameters();
+            return;
+        }
+
+        if ("POST".equals(this.method)) {
+            setPostParameters();
+
+            return;
+        }
+    }
+
+    private void setGetParameters() {
+        String queryString = HttpRequestUtils.getPathToQueryString(path);
+
+        this.parameterMap = HttpRequestUtils.parseQueryString(queryString);
+    }
+
+    private void setPostParameters() throws IOException {
+        String data = IOUtils
+                .readData(bufferedReader, Integer.parseInt(getHeader("Content-Length")));
+
+        this.parameterMap = HttpRequestUtils.parseQueryString(data);
     }
 
 
@@ -44,51 +99,41 @@ public class HttpRequest {
         return line;
     }
 
-    public String getMethod () throws Exception {
+    private void setMethod(String requestLine) {
         if (requestLine == null) {
-            return null;
+            this.method = null;
         }
 
 
-        return HttpRequestUtils
+        this.method = HttpRequestUtils
                 .parseRequestLine(requestLine, HttpRequestUtils.STATUS_METHOD);
-
-
 
     }
 
-    public String getPath () {
+    private void setPath(String requestLine) {
         if (requestLine == null) {
-            return null;
+            this.path = null;
         }
 
 
-        return HttpRequestUtils
+        this.path = HttpRequestUtils
                 .parseRequestLine(requestLine, HttpRequestUtils.STATUS_PATH);
     }
 
-    public String getProtocol () {
+    private void setProtocol(String requestLine) {
         if (requestLine == null) {
-            return null;
+            this.protocol = null;
         }
 
 
-        return HttpRequestUtils
+        this.protocol =  HttpRequestUtils
                 .parseRequestLine(requestLine, HttpRequestUtils.STATUS_PROTOCOL);
     }
 
-    public String getHeader (String key) {
-        return headerMap.get(key);
-    }
-
-    public void getParameter () {
-
-    }
-
-    private void parseHeader(BufferedReader br, String line) throws IOException {
-        while (!"".equals(line)) {
-            line = br.readLine();
-            HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
+    private void setHeader(String requestLine) throws IOException {
+        while (!"".equals(requestLine)) {
+            requestLine = bufferedReader.readLine();
+            HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(requestLine);
 
 
             if (pair != null) {
