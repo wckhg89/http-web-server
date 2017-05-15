@@ -50,7 +50,7 @@ public class HttpRequest {
     }
 
     public String getPath () {
-        return this.path;
+        return this.path.split("\\?")[0];
     }
 
     public String getProtocol () {
@@ -125,10 +125,8 @@ public class HttpRequest {
             this.path = null;
         }
 
-        String url = HttpRequestUtils
+        this.path = HttpRequestUtils
                 .parseRequestLine(requestLine, HttpRequestUtils.STATUS_PATH);
-
-        this.path = url.split("\\?")[0];
     }
 
     private void setProtocol(String requestLine) {
