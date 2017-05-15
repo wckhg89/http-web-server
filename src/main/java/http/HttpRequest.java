@@ -1,5 +1,6 @@
-package webserver;
+package http;
 
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
@@ -60,7 +61,16 @@ public class HttpRequest {
         return headerMap.get(key);
     }
 
+    public String getParameter (String key) {
+        return parameterMap.get(key);
+    }
+
     private void setParameter () throws IOException {
+        if (parameterMap == null) {
+            parameterMap = Maps.newHashMap();
+        }
+
+
         if ("GET".equals(this.method)) {
             setGetParameters();
             return;
@@ -115,9 +125,10 @@ public class HttpRequest {
             this.path = null;
         }
 
-
-        this.path = HttpRequestUtils
+        String url = HttpRequestUtils
                 .parseRequestLine(requestLine, HttpRequestUtils.STATUS_PATH);
+
+        this.path = url.split("\\?")[0];
     }
 
     private void setProtocol(String requestLine) {
@@ -131,6 +142,11 @@ public class HttpRequest {
     }
 
     private void setHeader(String requestLine) throws IOException {
+        if (headerMap == null) {
+            headerMap = Maps.newHashMap();
+        }
+
+
         while (!"".equals(requestLine)) {
             requestLine = bufferedReader.readLine();
             HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(requestLine);
